@@ -1,0 +1,85 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:c="http://java.sun.com/jsp/jstl/core"
+      xmlns:cc="http://java.sun.com/jsf/composite"
+      xmlns:p="http://primefaces.org/ui">
+      
+    <h:head>        
+        
+
+    </h:head>
+    <h:body>
+        
+        <h:form id="createnodetemplate">
+            <h:panelGrid>
+            <h:outputLabel value="Plugin Name " />
+            <h:inputText id="PluginName" label="Plugin Name" value="#{nodeTemplateController.tempNodeTemplate.pluginName}"/> <!-- TODO: change it to dropdown menu -->
+            <h:outputLabel value="Hadoop Version: " />
+            <h:inputText id="HadoopVersion" label="Hadoop Version" value="#{nodeTemplateController.tempNodeTemplate.hadoopVersion}"/> <!-- TODO: change it to dropdown menu -->
+            <h:outputLabel value="Template Name " />
+            <h:inputText id="TemplateName" label="Template Name" value="#{nodeTemplateController.tempNodeTemplate.name}" required="true" 
+                         requiredMessage="Unique name for node template"/>
+            <h:outputLabel value="Description " />
+            <h:inputText id="Description" label="Description" value="#{nodeTemplateController.tempNodeTemplate.description}"/>
+            <h:outputLabel value="Openstack Flavor " />
+            <h:inputText id="OpenstackFlavor" label="Openstack Flavor" value="#{nodeTemplateController.tempNodeTemplate.openstackFlavour}"/>
+            <h:outputLabel value="Storage location " />
+            <h:inputText id="Storagelocation" label="Storage location" value="#{nodeTemplateController.tempNodeTemplate.storageLocation}"/>
+            <h:outputLabel value="Floating Ip pool " for="FloatingIppool"/>
+            <h:inputText id="FloatingIppool" label="Floating Ip pool" value="#{nodeTemplateController.tempNodeTemplate.floatingIpPool}"/>
+            <h:outputLabel for="processes" value="Processes" />
+            <h:selectManyCheckbox id="processes"
+                                      layout="pageDirection"
+                                      value="#{nodeTemplateController.tempNodeTemplate.processes}">
+                     
+                    <f:selectItems value="#{nodeTemplateController.tempNodeTemplate.processesItems}"/>
+            </h:selectManyCheckbox>
+            <h:outputLabel value="token " for="token"/>
+            <h:inputText id="token" label="token" value="#{hadoopBean.token}"/>
+            <h:commandButton id="save" value="submit" action="#{nodeTemplateController.process}"/>
+            </h:panelGrid>
+            
+            <!--
+            data table to display the node template list
+            
+             -->
+             <p:dataTable var="node" value="#{hadoopBean.nodeTemplateList}">
+                 <p:column>
+                     <f:facet name="header">
+                         <h:outputText value="Name" />
+                     </f:facet>
+                     <h:outputText value="#{node.name}" />
+                 </p:column>
+                 <p:column>
+                     <f:facet name="header">
+                         <h:outputText value="Plugin" />
+                     </f:facet>
+                     <h:outputText value="#{node.pluginName}" />
+                 </p:column>
+                 <p:column>
+                     <f:facet name="header">
+                         <h:outputText value="Hadoop Version" />
+                     </f:facet>
+                     <h:outputText value="#{node.hadoopVersion}" />
+                 </p:column>
+                 <p:column>
+                     <f:facet name="header">
+                         <h:outputText value="Node Processes" />
+                     </f:facet>
+                     <ui:repeat var="o" value="#{node.processes}">
+                          <h:outputText value="#{o}" /> <br/> 
+                     </ui:repeat>
+                    <!-- <h:outputText value="#{node.processes}" /> -->
+                 </p:column>
+             </p:dataTable>    
+         
+        </h:form>
+        
+     </h:body>
+</html>       
+        
+        
