@@ -29,6 +29,9 @@ import org.slf4j.LoggerFactory;
 
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
+import de.gwdg.portlet.hadoopcluster.model.Cluster;
+import de.gwdg.portlet.hadoopcluster.model.Image;
+import de.gwdg.portlet.hadoopcluster.model.Plugin;
 
 
 
@@ -171,9 +174,11 @@ public class HadoopBean {
     {
         logger.info("Hadoop Bean init");
         loadUserCredentials();
+        loadImages();
         loadNodeTemplate();
         loadClusterTemplate();
-        
+        loadClusters();
+        loadPlugins();
     }
     public void updateClusterTemplateDisplay()
     {
@@ -312,6 +317,141 @@ public class HadoopBean {
         {
             logger.error("Error while loading the loadClusterTemplate list"+e);
         }
+    }
+    
+    ArrayList<Image> imageList=
+            new ArrayList<Image>();
+
+    public ArrayList<Image> getImageList() {
+        return imageList;
+    }
+
+    public void setImageList(ArrayList<Image> imageList) {
+        this.imageList = imageList;
+    }
+
+    public void loadImages()
+    {
+        logger.info("Loading sahara images");
+        String SAHARA_ENDPOINT="http://10.108.16.13:8386/v1.0/";
+        String TENANT_ID="e8db1678ff104c3397e30293ebdba61a";
+        String IMAGE_PATH=
+                SAHARA_ENDPOINT + TENANT_ID + "/images";
+        HTTPClient.setEndpoint(IMAGE_PATH);
+
+        HTTPClient.setToken(getToken());
+        
+        try{
+            String response = HTTPClient.get(null);
+            JsonNode jsonResponse = (new JacksonReader(response)).getJsonNode();
+            logger.info(" loadImages(): json response" + jsonResponse);
+            if(jsonResponse.has("images"))
+            {
+                jsonResponse=jsonResponse.get("images");
+                Iterator<JsonNode> jsonIterator = jsonResponse.iterator();
+                while (jsonIterator.hasNext()) {
+                    Image img=new Image();
+                    img.load(jsonIterator.next());
+                    imageList.add(img);
+                    
+                }
+            }
+        }catch(Exception e)
+        {
+            logger.error("Error while loading the images"+ e);
+        }
+        
+                
+    }
+
+    ArrayList<Cluster> clusters =new ArrayList<Cluster>();
+    
+        public ArrayList<Cluster> getClusters() {
+        return clusters;
+    }
+
+    public void setClusters(ArrayList<Cluster> clusters) {
+        this.clusters = clusters;
+    }
+    
+    public void loadClusters()
+    {
+        logger.info("loading clusters");
+        String SAHARA_ENDPOINT="http://10.108.16.13:8386/v1.0/";
+        String TENANT_ID="e8db1678ff104c3397e30293ebdba61a";
+        String CLUSTER_PATH=
+                SAHARA_ENDPOINT + TENANT_ID + "/clusters";
+        
+        HTTPClient.setEndpoint(CLUSTER_PATH);
+
+        HTTPClient.setToken(getToken());
+        try{
+            String response = HTTPClient.get(null);
+            JsonNode jsonResponse = (new JacksonReader(response)).getJsonNode();
+            logger.info(" loadClusters(): json response" + jsonResponse);
+            if(jsonResponse.has("clusters"))
+            {
+                jsonResponse=jsonResponse.get("clusters");
+                Iterator<JsonNode> jsonIterator = jsonResponse.iterator();
+                while (jsonIterator.hasNext()) {
+                    Cluster c=new Cluster();
+                    JsonNode Node=jsonIterator.next();
+                    logger.info("cluster node "+Node);
+                    c.load(Node);
+                    clusters.add(c);
+                    
+                }
+                
+            }
+        }catch(Exception e)
+        {
+            logger.error("Error while loading the clusters"+e);
+        }
+            
+    }
+    
+    ArrayList<Plugin> plugins=
+            new ArrayList<Plugin>();
+
+    public ArrayList<Plugin> getPlugins() {
+        return plugins;
+    }
+
+    public void setPlugins(ArrayList<Plugin> plugins) {
+        this.plugins = plugins;
+    }
+    public void loadPlugins()
+    {
+        logger.info("Inside loadPlugins()");
+        String SAHARA_ENDPOINT="http://10.108.16.13:8386/v1.0/";
+        String TENANT_ID="e8db1678ff104c3397e30293ebdba61a";
+        String PLUGIN_PATH=
+                SAHARA_ENDPOINT + TENANT_ID + "/plugins";
+         HTTPClient.setEndpoint(PLUGIN_PATH);
+
+        HTTPClient.setToken(getToken());
+        try{
+             String response = HTTPClient.get(null);
+            JsonNode jsonResponse = (new JacksonReader(response)).getJsonNode();
+            logger.info(" loadPlugins(): json response" + jsonResponse);
+            if(jsonResponse.has("plugins"))
+            {
+                jsonResponse=jsonResponse.get("plugins");
+                Iterator<JsonNode> jsonIterator = jsonResponse.iterator();
+                while (jsonIterator.hasNext()) {
+                    Plugin p=new Plugin();
+                    JsonNode Node=jsonIterator.next();
+                    p.load(Node);
+                    plugins.add(p);
+                    
+                    
+                }
+            }
+        }catch(Exception e)
+        {
+            logger.error("Error loading loadPlugins"+e);
+        }
+        
     }
     
 }

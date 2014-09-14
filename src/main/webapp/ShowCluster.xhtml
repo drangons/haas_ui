@@ -1,0 +1,50 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"
+      xmlns:h="http://java.sun.com/jsf/html"
+      xmlns:f="http://java.sun.com/jsf/core"
+      xmlns:ui="http://java.sun.com/jsf/facelets"
+      xmlns:c="http://java.sun.com/jsp/jstl/core"
+      xmlns:cc="http://java.sun.com/jsf/composite"
+      xmlns:p="http://primefaces.org/ui">
+    <h:head>        
+
+
+    </h:head>
+    <h:body>
+        <h:form id="form">
+        <p:growl id="msgs" showDetail="true" />
+        <p:tabView>
+            <p:tab title="General Info">
+            <h:panelGrid >
+                
+                <h:outputText value="Cluster Overview" />
+                <h:outputText value="Name" />
+                <h:outputText value="Status" />
+                <h:outputText value="Plugin" />
+                <h:outputText value="Hadoop Version" />
+                <h:outputText value="Template" />
+                <h:outputText value="Image" />
+                <h:outputText value="HDFS" />
+                <h:outputText value="JobFlow" />
+                <h:outputText value="MapReduce" />
+                
+                
+            </h:panelGrid>
+        </p:tab>
+            <p:tab title="Node Groups">
+            <h:panelGrid >
+                
+                <h:outputText value="Node Groups" />
+            </h:panelGrid>
+        </p:tab>
+            <p:tab title="Instances">
+            <h:panelGrid >
+                
+                <h:outputText value="cluster Instances" />
+            </h:panelGrid>
+        </p:tab>
+        </p:tabView>
+        </h:form>
+    </h:body>
+</html>
