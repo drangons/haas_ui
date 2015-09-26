@@ -1,22 +1,79 @@
 <?xml version='1.0' encoding='UTF-8' ?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"
-      xmlns:h="http://xmlns.jcp.org/jsf/html">
+      xmlns:h="http://xmlns.jcp.org/jsf/html"
+      xmlns:p="http://primefaces.org/ui">
     <h:head>
         <title>Facelet Title</title>
     </h:head>
     <h:body>
-        Hello from Facelets
-        <br />
-        <h:link outcome="welcomePrimefaces" value="Primefaces welcome page" />
-        <br/>
-        <h:link outcome="NodeTemplate" value="NodeTemplate" />
-        <br/>
-        <h:link outcome="ClusterTemplate" value="ClusterTemplate" />
-        <br/>
-        <h:link outcome="ManageCluster" value="ManageCluster" />
-        <br/>
-        <h:link outcome="ShowPlugin" value="ShowPlugin" />
+        <p:layout fullPage="true">
+            <p:layoutUnit position="center">
+       
+        <br/><b>The Sahara plugin provision Hadoop on Openstack.</b><br/>
+        <b>What is Hadoop?</b><br/>
+        To simplify cluster provisioning the concept of templates are used.
+        There are two kinds of templates: Node Template and Cluster Template.
+        Templates has parameters that the user can set. This template is used to
+        launch and configure the hadoop cluster. The templates can be reused for
+        launching the clusters. <br/>
+       
+        Currently two version of hadoop are supported. v1.2.1 and v2.3.0
+        
+        <br/><b>What is a Node Template?.</b><br/>
+        Node templates are the means by which the user can specifies which hadoop 
+        process are running in the cluster.
+        
+        <br/>In the hadoop v1.2.1 user can specify
+        NameNode,DataNode,SecondaryNameNode,Oozie, TaskTracker,JobTracker,HiveServer 
+        
+        <br/>In Hadoop v2.3.0
+        NameNode,DataNode,ResourceManager,NodeManager,HistoryServer.
+        
+        
+        
+        <br/><b>What is a Cluster Template?</b><br/>
+        Cluster template specifies the number of nodes in the cluster. 
+       
+        The cluster template specified should be consistent.
+        
+        <br/>For Hadoop version 1.x.x
+        Cluster must contain exactly one namenode
+        Cluster can contain at most one jobtracker
+        Cluster can contain at most one oozie and this process is also required for EDP
+        Cluster can’t contain oozie without jobtraker
+        Cluster can’t have tasktracker nodes if it doesn’t have jobtracker
+        
+        <br/>For Hadoop version 2.x.x
+        Cluster must contain exactly one namenode
+        Cluster can contain at most one resourcemanager
+        Cluster can contain at most one historyserver
+        Cluster can contain at most one oozie and this process is also required for EDP
+        Cluster can’t contain oozie without resourcemanager and without historyserver
+        Cluster can’t have nodemanager nodes if it doesn’t have resourcemanager
+        <br/><b>Note</b><br/>
+        1. The user has to specify the node template and cluster template and 
+        start the cluster. 
+        <br/>2.To access the HDFS and Oozie through web interface the ports 50070 and
+        50030 should be opened in security rules.
+        <br/>3. The number of new floating Ips that can be created should be equal or more
+        than the number of the nodes in the cluster. THe floating Ips will  not 
+        be reused and hence the user has to delete it after the cluster is deleted.
+        <p/>
+            </p:layoutUnit>
+                        <p:layoutUnit position="west" size="175" header="Left" collapsible="true">
+                    <p:menu>
+                        <p:submenu label="Resources">
+                            <p:menuitem value="Node Template" outcome="NodeTemplate"/>
+                             <p:menuitem value="Cluster Template" outcome="ClusterTemplate" />
+                            <p:menuitem value="Manage Cluster" outcome="ManageCluster" />
+                            <p:menuitem value="ShowPlugin" outcome="ShowPlugin" />
+
+                        </p:submenu>
+
+                    </p:menu>
+                </p:layoutUnit>
+        </p:layout>
     </h:body>
 </html>
 

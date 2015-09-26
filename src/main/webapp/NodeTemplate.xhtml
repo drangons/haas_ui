@@ -7,79 +7,125 @@
       xmlns:c="http://java.sun.com/jsp/jstl/core"
       xmlns:cc="http://java.sun.com/jsf/composite"
       xmlns:p="http://primefaces.org/ui">
-      
+
     <h:head>        
-        
+
 
     </h:head>
-    <h:body>
-        
+    <h:body >
+
+
         <h:form id="createnodetemplate">
-            <h:panelGrid>
-            <h:outputLabel value="Plugin Name " />
-            <h:inputText id="PluginName" label="Plugin Name" value="#{nodeTemplateController.tempNodeTemplate.pluginName}"/> <!-- TODO: change it to dropdown menu -->
-            <h:outputLabel value="Hadoop Version: " />
-            <h:inputText id="HadoopVersion" label="Hadoop Version" value="#{nodeTemplateController.tempNodeTemplate.hadoopVersion}"/> <!-- TODO: change it to dropdown menu -->
-            <h:outputLabel value="Template Name " />
-            <h:inputText id="TemplateName" label="Template Name" value="#{nodeTemplateController.tempNodeTemplate.name}" required="true" 
-                         requiredMessage="Unique name for node template"/>
-            <h:outputLabel value="Description " />
-            <h:inputText id="Description" label="Description" value="#{nodeTemplateController.tempNodeTemplate.description}"/>
-            <h:outputLabel value="Openstack Flavor " />
-            <h:inputText id="OpenstackFlavor" label="Openstack Flavor" value="#{nodeTemplateController.tempNodeTemplate.openstackFlavour}"/>
-            <h:outputLabel value="Storage location " />
-            <h:inputText id="Storagelocation" label="Storage location" value="#{nodeTemplateController.tempNodeTemplate.storageLocation}"/>
-            <h:outputLabel value="Floating Ip pool " for="FloatingIppool"/>
-            <h:inputText id="FloatingIppool" label="Floating Ip pool" value="#{nodeTemplateController.tempNodeTemplate.floatingIpPool}"/>
-            <h:outputLabel for="processes" value="Processes" />
-            <h:selectManyCheckbox id="processes"
-                                      layout="pageDirection"
-                                      value="#{nodeTemplateController.tempNodeTemplate.processes}">
-                     
-                    <f:selectItems value="#{nodeTemplateController.tempNodeTemplate.processesItems}"/>
-            </h:selectManyCheckbox>
-            <h:outputLabel value="token " for="token"/>
-            <h:inputText id="token" label="token" value="#{hadoopBean.token}"/>
-            <h:commandButton id="save" value="submit" action="#{nodeTemplateController.process}"/>
-            </h:panelGrid>
-            
-            <!--
-            data table to display the node template list
-            
-             -->
-             <p:dataTable var="node" value="#{hadoopBean.nodeTemplateList}">
-                 <p:column>
-                     <f:facet name="header">
-                         <h:outputText value="Name" />
-                     </f:facet>
-                     <h:outputText value="#{node.name}" />
-                 </p:column>
-                 <p:column>
-                     <f:facet name="header">
-                         <h:outputText value="Plugin" />
-                     </f:facet>
-                     <h:outputText value="#{node.pluginName}" />
-                 </p:column>
-                 <p:column>
-                     <f:facet name="header">
-                         <h:outputText value="Hadoop Version" />
-                     </f:facet>
-                     <h:outputText value="#{node.hadoopVersion}" />
-                 </p:column>
-                 <p:column>
-                     <f:facet name="header">
-                         <h:outputText value="Node Processes" />
-                     </f:facet>
-                     <ui:repeat var="o" value="#{node.processes}">
-                          <h:outputText value="#{o}" /> <br/> 
-                     </ui:repeat>
-                    <!-- <h:outputText value="#{node.processes}" /> -->
-                 </p:column>
-             </p:dataTable>    
-         
+            <p:layout fullPage="true">
+                <p:layoutUnit position="center">
+                    <p:growl id="msgs" showDetail="true" />
+                    <p:panel>
+                        <h:panelGrid>
+                            <h:outputLabel value="Plugin Name " />
+
+                            <p:selectOneMenu id="Plugin" value="#{nodeTemplateController.tempNodeTemplate.pluginName}" required="true"  requiredMessage="select a plugin"  >
+                                <p:ajax listener="#{nodeTemplateController.onPluginChange}" update="@this HadoopVersion"  />
+                                <f:selectItem itemLabel="Select plugin" itemValue="" noSelectionOption="true" />
+                                <f:selectItems value="#{hadoopBean.plugins}" var="plugin" itemValue="#{plugin.name}" itemLabel="#{plugin.name}"  >
+
+
+                                </f:selectItems>
+
+                            </p:selectOneMenu>
+
+                            <h:outputLabel value="Hadoop Version: " for="HadoopVersion" />
+                            <p:selectOneMenu id="HadoopVersion" value="#{nodeTemplateController.tempNodeTemplate.hadoopVersion}"  required="true" requiredMessage="select a hadoop version">
+                                <p:ajax update="hadoopVersion processes" process="@this HadoopVersion "  listener="#{nodeTemplateController.updateNodeProcess()}"/>
+
+                                <f:selectItem itemLabel="Select version" itemValue="" noSelectionOption="true" />
+                                <f:selectItems value="#{nodeTemplateController.hadoopVersions}" var="ver" itemValue="#{ver}" itemLabel="#{ver}" />
+                            </p:selectOneMenu>
+                            <h:outputLabel for="hadoopVersion" value="hadoop Version"/>
+                            <h:outputText id="hadoopVersion" value="#{nodeTemplateController.tempNodeTemplate.hadoopVersion}"/>
+                            <h:outputLabel value="Template Name " />
+                            <h:inputText id="TemplateName" label="Template Name" value="#{nodeTemplateController.tempNodeTemplate.name}" required="true" 
+                                         requiredMessage="Unique name for node template" >
+                                <p:ajax listener="#{nodeTemplateController.checkUniqueNodeTemplateName}" update="msgs" />
+                            </h:inputText>
+                            <h:outputLabel value="Description " />
+                            <h:inputText id="Description" label="Description" value="#{nodeTemplateController.tempNodeTemplate.description}"/>
+                            <h:outputLabel value="Openstack Flavor " />
+
+                            <p:selectOneMenu id="OpenstackFlavor" value="#{nodeTemplateController.tempNodeTemplate.openstackFlavour}">
+                                <f:selectItem itemLabel="Select Openstack flavour" itemValue="" noSelectionOption="true" />
+                                <f:selectItems value="#{hadoopBean.flavorList}" var="v" itemValue="#{v}" itemLabel="#{v}"/>
+                            </p:selectOneMenu> 
+
+
+                            <h:outputLabel for="processes" value="Processes" />
+                            <p:selectManyCheckbox id="processes"
+                                                  layout="pageDirection"
+                                                  value="#{nodeTemplateController.tempNodeTemplate.processes}" >
+
+
+                                <f:selectItems value="#{nodeTemplateController.p}"/>
+                            </p:selectManyCheckbox>
+
+
+
+                            <p:commandButton id="save" value="submit" action="#{nodeTemplateController.process()}" update="nodeTemplate"  />
+                        </h:panelGrid>
+
+                        <!--
+                        data table to display the node template list
+                        
+                        -->
+                        <p:dataTable id="nodeTemplate" var="node" value="#{hadoopBean.nodeTemplateList}">
+                            <p:column>
+                                <f:facet name="header">
+                                    <h:outputText value="Name" />
+                                </f:facet>
+                                <h:link value="#{node.name}"  outcome="ShowNodeTemplate"/>
+                            </p:column>
+                            <p:column>
+                                <f:facet name="header">
+                                    <h:outputText value="Plugin" />
+                                </f:facet>
+                                <h:outputText value="#{node.pluginName}" />
+                            </p:column>
+                            <p:column>
+                                <f:facet name="header">
+                                    <h:outputText value="Hadoop Version" />
+                                </f:facet>
+                                <h:outputText value="#{node.hadoopVersion}" />
+                            </p:column>
+                            <p:column>
+                                <f:facet name="header">
+                                    <h:outputText value="Node Processes" />
+                                </f:facet>
+                                <ui:repeat var="o" value="#{node.processes}">
+                                    <h:outputText value="#{o}" /> <br/> 
+                                </ui:repeat>
+
+                            </p:column>
+                            <p:column headerText="Action">
+
+                                <p:commandButton value="Delete template" update="nodeTemplate" process="@this nodeTemplate" action="#{nodeTemplateController.deleteNodeTemplate(node.name)}"/>
+                            </p:column>
+                        </p:dataTable>    
+                    </p:panel>
+                </p:layoutUnit>
+                <p:layoutUnit position="west" size="175" header="Left" collapsible="true">
+                    <p:menu>
+                        <p:submenu label="Resources">
+                            <p:menuitem value="Node Template" outcome="NodeTemplate"/>
+                            <p:menuitem value="Cluster Template" outcome="ClusterTemplate" />
+                            <p:menuitem value="Manage Cluster" outcome="ManageCluster" />
+                            <p:menuitem value="ShowPlugin" outcome="ShowPlugin" />
+
+                        </p:submenu>
+
+                    </p:menu>
+                </p:layoutUnit>
+            </p:layout>
         </h:form>
-        
-     </h:body>
+
+    </h:body>
 </html>       
-        
-        
+
+

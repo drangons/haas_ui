@@ -18,11 +18,16 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import javax.json.JsonWriter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 /**
  *
  * @author dikshith
  */
 public class NodeTemplate implements Serializable {
+    
+    private static final Logger logger=LoggerFactory.getLogger(
+            NodeTemplate.class);
     
     public void load(JsonNode json)
     {
@@ -59,6 +64,7 @@ public class NodeTemplate implements Serializable {
     }
 
     public void setHadoopVersion(String hadoopVersion) {
+        logger.info("Set the hadoop version in Nodetemplate");
         this.hadoopVersion = hadoopVersion;
     }
 
@@ -116,9 +122,7 @@ public class NodeTemplate implements Serializable {
    public void setProcesses(String[] processes) {
         this.processes = processes;
     }
-    public SelectItem[] getProcessesItems() {
-        return processesItems;
-    }
+
     public String toJSON()
     {
         /*
@@ -130,6 +134,7 @@ public class NodeTemplate implements Serializable {
     "node_processes": ["jobtracker", "namenode"]
 }
         */
+        logger.info("Processes length" + processes.length);
         JsonArrayBuilder processarray =Json.createArrayBuilder();
         for(String process : processes)
         {
@@ -180,15 +185,6 @@ public class NodeTemplate implements Serializable {
     private String storageLocation;
     private String floatingIpPool;
     private String[] processes;
-    private static final SelectItem[] processesItems = {
-        new SelectItem("namenode"),
-        new SelectItem("datanode"),
-        new SelectItem("secondarynamenode"),
-        new SelectItem("oozie"),
-        new SelectItem("tasktracker"),
-        new SelectItem("jobtracker"),
-        new SelectItem("hiveserver")
-    };
 
 
 

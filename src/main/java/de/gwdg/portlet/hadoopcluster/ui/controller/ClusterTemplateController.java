@@ -11,10 +11,13 @@ import de.gwdg.portlet.computecloud.ui.util.HTTPClient;
 import de.gwdg.portlet.computecloud.ui.util.json.JacksonReader;
 import de.gwdg.portlet.hadoopcluster.model.ClusterTemplate;
 import de.gwdg.portlet.hadoopcluster.model.NodeTemplate;
+import de.gwdg.portlet.hadoopcluster.model.Plugin;
 import java.io.Serializable;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Map.Entry;
 import javax.inject.Named;
 import javax.faces.view.ViewScoped;
@@ -85,10 +88,19 @@ public class ClusterTemplateController implements Serializable {
     public void setTempClusterTemplate(ClusterTemplate tempClusterTemplate) {
         this.tempClusterTemplate = tempClusterTemplate;
     }
-    
+    NodeTemplateCount nodeTemplateCount =
+            new NodeTemplateCount();
+
+    public NodeTemplateCount getNodeTemplateCount() {
+        return nodeTemplateCount;
+    }
+
+    public void setNodeTemplateCount(NodeTemplateCount nodeTemplateCount) {
+        this.nodeTemplateCount = nodeTemplateCount;
+    }
     public void addNode()
     {
-        logger.info("inside addNode with "+node+"node and "+"count");
+        logger.info("inside addNode with "+node+"node and "+count);
         NodeTemplateCount t=new NodeTemplateCount();
         t.setCount(count);
         t.setNode(node);
@@ -284,5 +296,97 @@ public class ClusterTemplateController implements Serializable {
         
         
     }
+    public void validateClusterTemplate()
+    {
+        if(tempClusterTemplate.getName()=="")
+        {
+           logger.error("Cluster template name cannot be empty");
+        }
+        else if(tempClusterTemplate.getPluginName()=="")
+        {
+            logger.error("Cluster template plugin name cannot be empty");
+        }else if(tempClusterTemplate.getHadoopVersion()=="")
+        {
+            logger.error("Cluster template hadoop version cannot be empty");
+        }else if(tempClusterTemplate.getNodeTemplatelist().size()==0)
+        {
+            logger.error("Cluster template node list cannot be empty");
+        }
+        
+    }
+    ArrayList<String> tempHadoopVersionList=
+            new ArrayList<String>();
+
+    public ArrayList<String> getTempHadoopVersionList() {
+        return tempHadoopVersionList;
+    }
+
+    public void setTempHadoopVersionList(ArrayList<String> tempHadoopVersionList) {
+        this.tempHadoopVersionList = tempHadoopVersionList;
+    }
     
+    public void onPluginChange()
+    {
+        for(Plugin p : bean.getPlugins())
+        {
+            
+            if(p.getName().equals(tempClusterTemplate.getPluginName()))
+            {
+                setTempHadoopVersionList(p.getSupportVersions());
+            }
+        }
+    }
+    ArrayList<String> tempNodeGroups=
+            new ArrayList<String>();
+
+    public ArrayList<String> getTempNodeGroups() {
+        return tempNodeGroups;
+    }
+
+    public void setTempNodeGroups(ArrayList<String> tempNodeGroups) {
+        this.tempNodeGroups = tempNodeGroups;
+    }
+    
+    public void updateNodeGroups()
+    {
+        HashMap<String, NodeTemplate> temp=bean.getMaplist();
+        Iterator it=temp.entrySet().iterator();
+        ArrayList<String>tl = new 
+                ArrayList<String>();
+        while(it.hasNext())
+        {
+            Map.Entry pair=(Map.Entry) it.next();
+            NodeTemplate t=(NodeTemplate) pair.getValue();
+            if(tempClusterTemplate.getPluginName().equals(t.getPluginName())
+                    && tempClusterTemplate.getHadoopVersion().equals(t.getHadoopVersion()))
+            {
+                logger.info("updateNodeGroups adding node "+ (String)pair.getKey());
+                tl.add((String)pair.getKey());
+            }
+        }
+        setTempNodeGroups(tl);
+    }
+    public void deleteNodeTemplate(String name)
+    {
+        logger.info("deleteNodeTemplate delete node template "+ name);
+        int n=nodeTemplateCountList.size();
+        for(int i=0;i<n;i++)
+        {
+            NodeTemplateCount t=nodeTemplateCountList.get(i);
+            if(t.getNode().equals(name))
+            {
+                logger.info("deleteNodeTemplate remove "+name);
+                nodeTemplateCountList.remove(i);
+                n--;
+            }
+            
+            
+        }
+        
+    }
+    public void clearNodeTemplate()
+    {
+        logger.info("clearNodeTemplate");
+        nodeTemplateCountList.clear();
+    }
 }

@@ -12,7 +12,10 @@
 
     </h:head>
     <h:body>
-        <h:form id="form">
+        <h:form>
+        <p:layout fullPage="true">
+            <p:layoutUnit position="center">
+        
         <p:growl id="msgs" showDetail="true" />
         <p:dataTable id="plugins" var="temp" value="#{hadoopBean.plugins}">
             <p:column headerText="Name">
@@ -34,6 +37,22 @@
             </p:column>
 
         </p:dataTable>
+        
+        
+                    </p:layoutUnit>
+                        <p:layoutUnit position="west" size="175" header="Left" collapsible="true">
+                    <p:menu>
+                        <p:submenu label="Resources">
+                            <p:menuitem value="Node Template" outcome="NodeTemplate"/>
+                             <p:menuitem value="Cluster Template" outcome="ClusterTemplate" />
+                            <p:menuitem value="Manage Cluster" outcome="ManageCluster" />
+                            <p:menuitem value="ShowPlugin" outcome="ShowPlugin" />
+
+                        </p:submenu>
+
+                    </p:menu>
+                </p:layoutUnit>
+        </p:layout>
         </h:form>
     </h:body>
 </html>

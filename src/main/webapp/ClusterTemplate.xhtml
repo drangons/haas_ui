@@ -14,83 +14,114 @@
     <h:body>
 
         <h:form id="createclustertemplate">
-            <p:growl id="msgs" showDetail="true" sticky="true" />
-            <p:panel header="Growl">
-                <h:panelGrid>
-                    <h:outputLabel value="Plugin Name " />
-                    <h:inputText id="PluginName" label="Plugin Name" value="#{clusterTemplateController.tempClusterTemplate.pluginName}"/> <!-- TODO: change it to dropdown menu -->
-                    <h:outputLabel value="Hadoop Version: " />
-                    <h:inputText id="HadoopVersion" label="Hadoop Version" value="#{clusterTemplateController.tempClusterTemplate.hadoopVersion}"/> <!-- TODO: change it to dropdown menu -->
-                    <h:outputLabel value="Template Name " />
-                    <h:inputText id="TemplateName" label="Template Name" value="#{clusterTemplateController.tempClusterTemplate.name}" required="true" 
-                                 requiredMessage="Unique name for node template"/>
-                    <h:outputLabel value="Description " />
-                    <h:inputText id="Description" label="Description" value="#{clusterTemplateController.tempClusterTemplate.description}"/>
+            <p:layout fullPage="true">
+                <p:layoutUnit position="center">
+                    <p:growl id="msgs" showDetail="true" sticky="true" />
+                    <p:panel header="Growl">
+                        <h:panelGrid>
+                            <h:outputLabel value="Plugin Name " />
 
-                    <p:commandButton value="AddNodes" type="button" onclick="dlg1.show();" />
-                    <h:commandButton id="submit" value="submit" action="#{clusterTemplateController.process}"/>
-                    <p:outputLabel value="cluster template" for="clusterTemplate"/>
-                    <p:dataTable id="clusterTemplate" var="temp" value="#{hadoopBean.clusterTemplateList}">
-                        <p:column headerText="Name">
-                            <h:outputText value="#{temp.name}" />
-                        </p:column>
-                        <p:column headerText="Plugin">
-                            <h:outputText value="#{temp.pluginName}" />
-                        </p:column>
-                        <p:column headerText="Hadoop Version">
-                            <h:outputText value="#{temp.hadoopVersion}" />
-                        </p:column>
-                        <p:column headerText="Node Groups">
-                            <ui:repeat var="o" value="#{temp.nodeTemplatelist}">
-                                <h:outputText value="#{o.node}:" />
-                                 <h:outputText value="#{o.count}" /><br/>
-                                  
-                            </ui:repeat>
-                        </p:column>
-                        <p:column headerText="Description">
-                        </p:column>
-                        <p:column headerText="Action">
-                            <p:commandButton value="Launch cluster" update="" process="@this" action="#{clusterTemplateController.actionLaunchCluster(temp.name)}"/>
-                            <p:commandButton value="Delete template" update="clusterTemplate" process="@this clusterTemplate" action="#{clusterTemplateController.deleteClusterTemplate(temp.name)}"/>
-                        </p:column>
-                    </p:dataTable>
-                        
-                </h:panelGrid>
+                            <p:selectOneMenu id="Plugin" value="#{clusterTemplateController.tempClusterTemplate.pluginName}" required="true"  requiredMessage="select a plugin"  >
+                                <p:ajax listener="#{clusterTemplateController.onPluginChange}" update="@this HadoopVersion"  />
+                                <f:selectItem itemLabel="Select plugin" itemValue="" noSelectionOption="true" />
+                                <f:selectItems value="#{hadoopBean.plugins}" var="plugin" itemValue="#{plugin.name}" itemLabel="#{plugin.name}"  >
+                                </f:selectItems>
+                            </p:selectOneMenu>
+                            <h:outputLabel value="Hadoop Version: " />
+                            <p:selectOneMenu id="HadoopVersion" value="#{clusterTemplateController.tempClusterTemplate.hadoopVersion}"  required="true" requiredMessage="select a hadoop version">
+                                <p:ajax update="nodeGroup" process="@this "  listener="#{clusterTemplateController.updateNodeGroups()}"/>
 
-                <p:dialog widgetVar="dlg1" height="400">
+                                <f:selectItem itemLabel="Select version" itemValue="" noSelectionOption="true" />
+                                <f:selectItems value="#{clusterTemplateController.tempHadoopVersionList}" var="ver" itemValue="#{ver}" itemLabel="#{ver}" />
+                            </p:selectOneMenu>
+                            <h:outputLabel value="Template Name " />
+                            <h:inputText id="TemplateName" label="Template Name" value="#{clusterTemplateController.tempClusterTemplate.name}" required="true" 
+                                         requiredMessage="Unique name for node template"/>
+                            <h:outputLabel value="Description " />
+                            <h:inputText id="Description" label="Description" value="#{clusterTemplateController.tempClusterTemplate.description}"/>
 
-                    <p:outputLabel value="Node Group" for="nodeGroup"/>
-                    <p:selectOneMenu id="nodeGroup" value="#{clusterTemplateController.node}">
+                            <p:commandButton value="AddNodes" type="button" onclick="dlg1.show();" />
+                            <h:commandButton id="submit" value="submit" action="#{clusterTemplateController.process}"/>
+                            <p:outputLabel value="cluster template" for="clusterTemplate"/>
+                            <p:dataTable id="clusterTemplate" var="temp" value="#{hadoopBean.clusterTemplateList}">
+                                <p:column headerText="Name">
+                                    <h:link value="#{temp.name}" outcome="ShowClusterTemplate"/>
+                                </p:column>
+                                <p:column headerText="Plugin">
+                                    <h:outputText value="#{temp.pluginName}" />
+                                </p:column>
+                                <p:column headerText="Hadoop Version">
+                                    <h:outputText value="#{temp.hadoopVersion}" />
+                                </p:column>
+                                <p:column headerText="Node Groups">
+                                    <ui:repeat var="o" value="#{temp.nodeTemplatelist}">
+                                        <h:outputText value="#{o.node}:" />
+                                        <h:outputText value="#{o.count}" /><br/>
 
-                        <f:selectItem itemLabel="Select node template" itemValue="" noSelectionOption="true" />
-                        <f:selectItems value="#{hadoopBean.maplist.keySet()}" />
+                                    </ui:repeat>
+                                </p:column>
+                                <p:column headerText="Description">
+                                </p:column>
+                                <p:column headerText="Action">
+                                    <p:commandButton value="Launch cluster" update="" process="@this" action="#{clusterTemplateController.actionLaunchCluster(temp.name)}"/>
+                                    <p:commandButton value="Delete template" update="clusterTemplate" process="@this clusterTemplate" action="#{clusterTemplateController.deleteClusterTemplate(temp.name)}"/>
+                                </p:column>
+                            </p:dataTable>
 
-                    </p:selectOneMenu>
-                    <h:outputLabel for="basic" value="node count " />
-                    <p:spinner id="basic" value="#{clusterTemplateController.count}" min="0">
-                      <!--  <p:ajax update="nodecount" process="@this" update=""/> -->
-                    </p:spinner>
-                    
+                        </h:panelGrid>
+
+                        <p:dialog widgetVar="dlg1" height="400">
+
+                            <p:outputLabel value="Node Group" for="nodeGroup"/>
+                            <p:selectOneMenu id="nodeGroup" value="#{clusterTemplateController.node}">
+
+                                <f:selectItem itemLabel="Select node template" itemValue="" noSelectionOption="true" />
+                                <f:selectItems value="#{clusterTemplateController.tempNodeGroups}" />
+
+                            </p:selectOneMenu>
+                            <h:outputLabel for="basic" value="node count " />
+                            <p:spinner id="basic" value="#{clusterTemplateController.count}" min="0">
+
+                            </p:spinner>
 
 
-                    <p:commandButton action= "#{clusterTemplateController.addNode()}" value="add" update="nodeGroupTable"  process="@this basic nodeGroup"/> 
-                    
+
+                            <p:commandButton action= "#{clusterTemplateController.addNode()}" value="add" update="nodeGroupTable"  process="@this basic nodeGroup"/> 
 
 
 
-                    <p:outputLabel value="node group table" for="nodeGroupTable"/>
-                    <p:dataTable id="nodeGroupTable"  var="n" value="#{clusterTemplateController.nodeTemplateCountList}" >
-                        <p:column headerText="Node Template">
-                            <h:outputText value="#{n.node}" />
-                        </p:column>
 
-                        <p:column headerText="count">
-                            <h:outputText value="#{n.count}" />
-                        </p:column>
-                    </p:dataTable>
+                            <p:outputLabel value="node group table" for="nodeGroupTable"/>
+                            <p:dataTable id="nodeGroupTable"  var="n" value="#{clusterTemplateController.nodeTemplateCountList}" >
+                                <p:column headerText="Node Template">
+                                    <h:outputText value="#{n.node}" />
+                                </p:column>
 
-                </p:dialog>
-            </p:panel>
+                                <p:column headerText="count">
+                                    <h:outputText value="#{n.count}" />
+                                </p:column>
+                                <p:column>
+                                    <p:commandButton id="deleterow" value="delete" action="#{clusterTemplateController.deleteNodeTemplate(n.node)}" update="nodeGroupTable" process="@this"/>
+                                </p:column>
+                            </p:dataTable>
+                            <p:commandButton id="ok" value="ok"  onclick="dlg1.close()"/>
+                            <p:commandButton id="cancel" value ="cancel" action="#{clusterTemplateController.clearNodeTemplate()}" onclick="dlg1.close()" process="@this"/>
+                        </p:dialog>
+                    </p:panel>
+                </p:layoutUnit>
+                <p:layoutUnit position="west" size="175" header="Left" collapsible="true">
+                    <p:menu>
+                        <p:submenu label="Resources">
+                            <p:menuitem value="Node Template" outcome="NodeTemplate"/>
+                            <p:menuitem value="Cluster Template" outcome="ClusterTemplate" />
+                            <p:menuitem value="Manage Cluster" outcome="ManageCluster" />
+                            <p:menuitem value="ShowPlugin" outcome="ShowPlugin" />
+
+                        </p:submenu>
+
+                    </p:menu>
+                </p:layoutUnit>
+            </p:layout>
         </h:form>
 
     </h:body>

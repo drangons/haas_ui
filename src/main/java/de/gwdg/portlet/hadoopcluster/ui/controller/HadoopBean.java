@@ -32,12 +32,15 @@ import com.sun.jersey.api.client.ClientResponse;
 import de.gwdg.portlet.hadoopcluster.model.Cluster;
 import de.gwdg.portlet.hadoopcluster.model.Image;
 import de.gwdg.portlet.hadoopcluster.model.Plugin;
+import javax.faces.application.FacesMessage;
+import javax.faces.context.FacesContext;
 
 
 
 
 /**
- *
+ *@ApplicationScoped. 
+ * Per tenant data container
  * @author dikshith
  */
 @ApplicationScoped
@@ -58,21 +61,25 @@ public class HadoopBean {
         this.token = token;
     }
     
-    // image name and image id list
     
-    //manage cluster DS
     
+    
+    /**
+     * Get keystone token
+     * Should be replaced when integrated with cloud portlet
+     */
+    @Deprecated
     public void loadUserCredentials()
     {
         logger.info("Inside loadUserCredentials");
-        String OS_AUTH_URL="http://10.108.16.13:5000/v2.0";
+        String OS_AUTH_URL="http://141.5.101.121:5000/v2.0";
         String AUTH_TOKEN_URL=OS_AUTH_URL+"/tokens";
         
-        logger.info("Token url"+AUTH_TOKEN_URL);
-        String OS_TENANT_ID="e8db1678ff104c3397e30293ebdba61a";
-        String OS_TENANT_NAME="demo";
+        logger.debug("Token url"+AUTH_TOKEN_URL);
+        String OS_TENANT_ID="bf809f0f55954a80b73d69a6b369774b";
+        String OS_TENANT_NAME="admin";
         String OS_USERNAME="admin";
-        String OS_PASSWORD="password";
+        String OS_PASSWORD="nova";
         
         JsonObject  password_cred=Json.createObjectBuilder()
                 .add("username",OS_USERNAME)
@@ -113,29 +120,43 @@ public class HadoopBean {
             
             if(jsonResponse.has("access"))
             {
+                logger.info("inside access");
                 jsonResponse=jsonResponse.get("access");
+                String temp=jsonResponse.get("token").get("id").asText();
+                logger.info("token is" + temp);
                 setToken(jsonResponse.get("token").get("id").asText());
                 
-                logger.info("token is "+getToken());
+                logger.debug("token is "+getToken());
             }
+            logger.info("outside if");
             
         }catch(Exception e)
         {
-            logger.error("Something went kapput in loadUserCredentials"+e);
+            logger.error("Something went kapput in loadUserCredentials"+e.getMessage());
+            FacesContext.getCurrentInstance().addMessage(null,
+                new FacesMessage("Error loading user credentials " + e.getMessage()));
         }
         
         
         
     }
 
-    
+    /**
+     * Display the node templates
+     */
      ArrayList<NodeTemplate> nodeTemplateList
             =new ArrayList<NodeTemplate>();
+     /**
+      * Store node template with node name as key for lookup
+      */
      HashMap<String,NodeTemplate> maplist=new HashMap<String,NodeTemplate>();
      
+     /**
+      * Display cluster templates
+      */
      ArrayList<ClusterTemplate> clusterTemplateList=
              new ArrayList<ClusterTemplate>();
-
+    
     public ArrayList<ClusterTemplate> getClusterTemplateList() {
         return clusterTemplateList;
     }
@@ -143,6 +164,9 @@ public class HadoopBean {
     public void setClusterTemplateList(ArrayList<ClusterTemplate> clusterTemplateList) {
         this.clusterTemplateList = clusterTemplateList;
     }
+    /**
+     * Store cluster template with template name as key for lookup
+     */
      HashMap<String,ClusterTemplate> clusterlist= 
              new HashMap<String,ClusterTemplate>();
 
@@ -169,6 +193,9 @@ public class HadoopBean {
     public void setNodeTemplateList(ArrayList<NodeTemplate> nodeTemplateList) {
         this.nodeTemplateList = nodeTemplateList;
     }
+    /**
+     * Initializes the application
+     */
     @PostConstruct
     public void init()
     {
@@ -179,12 +206,21 @@ public class HadoopBean {
         loadClusterTemplate();
         loadClusters();
         loadPlugins();
+        loadOpenStackFlavors();
     }
+    /**
+     * Invoked when cluster template is added or deleted. Updates cluster template 
+     * display table
+     */
     public void updateClusterTemplateDisplay()
     {
         clusterTemplateList.clear();
         clusterTemplateList.addAll(clusterlist.values());
     }
+    /**
+     * Invoked when node template is added or deleted. Updates node template table 
+     * display in NodeTEmplate.xhtml
+     */
     public void updateNodeTemplateDisplay()
     {
         
@@ -192,16 +228,31 @@ public class HadoopBean {
         nodeTemplateList.clear();
         nodeTemplateList.addAll(maplist.values());
     }
+    /**
+     * Adds a new node template
+     * @param temp Node template 
+     */
     public void add(NodeTemplate temp)
     {
-        nodeTemplateList.add(temp);
+        //nodeTemplateList.add(temp);
         maplist.put(temp.getName(),temp);
+        updateNodeTemplateDisplay();
     }
+    /**
+     * Adds new cluster template
+     * @param temp cluster template 
+     */
     public void add(ClusterTemplate temp)
     {
         clusterlist.put(temp.getName(),temp);
-        clusterTemplateList.add(temp);
+        updateClusterTemplateDisplay();
+        //clusterTemplateList.add(temp);
     }
+    /**
+     * Returns id of given cluster template name
+     * @param name name of cluster template
+     * @return id id of cluster template
+     */
     public String getClusterTemplateId(String name)
     {
         String id="";
@@ -217,16 +268,63 @@ public class HadoopBean {
         }
         return id;
     }
-    public void deleteClusterTemplate(String name)
+    /**
+     * Delete cluster template 
+     * @param name Name of the template
+     */
+    public void deleteClusterTemplate(String name) {
+        if (clusterlist.containsKey(name)) {
+            String clusterTemplateId = clusterlist.get(name).getId();
+            String SAHARA_ENDPOINT = "http://141.5.101.121:8386/v1.0/";
+            String TENANT_ID = "bf809f0f55954a80b73d69a6b369774b";
+            String CLUSTER_TEMPLATE_PATH
+                    = SAHARA_ENDPOINT + TENANT_ID + "/cluster-templates/" + clusterTemplateId;
+
+            HTTPClient.setEndpoint(CLUSTER_TEMPLATE_PATH);
+
+            HTTPClient.setToken(getToken());
+
+            try {
+                String response = HTTPClient.delete();
+                clusterlist.remove(name);
+                updateClusterTemplateDisplay();
+            } catch (Exception e) {
+                logger.error("Error while deleting cluster template" + name + " " + e);
+            }
+        } else {
+            logger.error("deleteClusterTemplate(): ClusterTemplate" + name + "not found");
+        }
+    }
+    /**
+     * Delete Node template
+     * @param name Name of node template
+     */
+    public void deleteNodeTemplate(String name)
     {
-        if(clusterlist.containsKey(name))
+        if(maplist.containsKey(name))
         {
-            clusterlist.remove(name);
-            updateClusterTemplateDisplay();
+            String nodeTemplateId=maplist.get(name).getId();
+            String SAHARA_ENDPOINT="http://141.5.101.121:8386/v1.0/";
+        String TENANT_ID="bf809f0f55954a80b73d69a6b369774b";
+        String NODE_GROUP_TEMP_PATH=SAHARA_ENDPOINT + 
+                TENANT_ID + "/node-group-templates/"+nodeTemplateId;
+         HTTPClient.setEndpoint(NODE_GROUP_TEMP_PATH);
+        //logger.info("endpoint"+NODE_GROUP_TEMP_PATH);
+        HTTPClient.setToken(getToken());
+        try{
+                String response = HTTPClient.delete();
+                maplist.remove(name);
+            updateNodeTemplateDisplay();
+        }
+        catch(Exception e)
+                {
+                    logger.error("Error while deleting node template"+name+" "+e);
+                }
+            
         }
         else
         {
-            logger.error("deleteClusterTemplate(): ClusterTemplate"+ name+"not found");
+            logger.error("deleteNodeTemplate(): Nodetemplate"+name+"not found");
         }
     }
     public ClusterTemplate getClusterTemplate(String name)
@@ -237,21 +335,17 @@ public class HadoopBean {
             logger.error("getClusterTemplate(): No cluster template with name"+name);
         return null;
     }
-    public NodeTemplate getNodeTemplate(String Name)
-    {
-        return maplist.get(Name);
-    }
+
     
-    public void addClusterTemplate(ClusterTemplate temp)
-    {
-        clusterlist.put(temp.getName(),temp);
-    }
-    
+
+    /**
+     * Reads node templates from sahara. Invoked during application init()
+     */
     public void loadNodeTemplate()
     {
         logger.info(" Inside loadNodeTemplate");
-        String SAHARA_ENDPOINT="http://10.108.16.13:8386/v1.0/";
-        String TENANT_ID="e8db1678ff104c3397e30293ebdba61a";
+        String SAHARA_ENDPOINT="http://141.5.101.121:8386/v1.0/";
+        String TENANT_ID="bf809f0f55954a80b73d69a6b369774b";
         String NODE_GROUP_TEMP_PATH=SAHARA_ENDPOINT + TENANT_ID + "/node-group-templates";
         HTTPClient.setEndpoint(NODE_GROUP_TEMP_PATH);
         //logger.info("endpoint"+NODE_GROUP_TEMP_PATH);
@@ -260,7 +354,7 @@ public class HadoopBean {
                 String response = HTTPClient.get(null);
                 JsonNode jsonResponse = (new JacksonReader(response)).getJsonNode();
             
-            logger.info("json response" + jsonResponse);
+            logger.debug("json response" + jsonResponse);
             if(jsonResponse.has("node_group_templates"))
             {
                 jsonResponse=jsonResponse.get("node_group_templates");
@@ -269,26 +363,31 @@ public class HadoopBean {
                 {
                     NodeTemplate nt=new NodeTemplate();
                     JsonNode temp=jsonIterator.next();
-                    logger.info("before load"+temp.toString());
+                    
                     nt.load(temp);
-                    logger.info("after load");
+                    
                     maplist.put(nt.getName(), nt);
-                    nodeTemplateList.add(nt);
+                    updateNodeTemplateDisplay();
                     
                 }
             }
         }
         catch(Exception e)
         {
-            logger.error("Error while loading the NodeTemplate list"+e);
+            logger.error("Error while loading the NodeTemplate list"+e.getMessage());
+            FacesContext.getCurrentInstance().addMessage(null,
+                new FacesMessage("Error loading user credentials " + e.getMessage()));
         }
     }
-    
+    /**
+     * Loads cluster template from sahara .
+     * Invoked at application init()
+     */
     public void loadClusterTemplate()
     {
         logger.info(" Inside loadClusterTemplate");
-        String SAHARA_ENDPOINT="http://10.108.16.13:8386/v1.0/";
-        String TENANT_ID="e8db1678ff104c3397e30293ebdba61a";
+        String SAHARA_ENDPOINT="http://141.5.101.121:8386/v1.0/";
+        String TENANT_ID="bf809f0f55954a80b73d69a6b369774b";
         String CLUSTER_TEMPLATE_PATH=
                 SAHARA_ENDPOINT + TENANT_ID + "/cluster-templates";
 
@@ -301,7 +400,7 @@ public class HadoopBean {
              String response = HTTPClient.get(null);
             JsonNode jsonResponse = (new JacksonReader(response)).getJsonNode();
             
-            logger.info("json response" + jsonResponse);
+            logger.debug("json response" + jsonResponse);
             if(jsonResponse.has("cluster_templates"))
             {
                 jsonResponse=jsonResponse.get("cluster_templates");
@@ -310,15 +409,19 @@ public class HadoopBean {
                     ClusterTemplate ct=new ClusterTemplate();
                     ct.load(jsonIterator.next());
                     clusterlist.put(ct.getName(),ct);
-                    clusterTemplateList.add(ct);
+                    updateClusterTemplateDisplay();
                 }
             }
         }catch(Exception e)
         {
-            logger.error("Error while loading the loadClusterTemplate list"+e);
+            logger.error("Error while loading the loadClusterTemplate list"+e.getMessage());
+            FacesContext.getCurrentInstance().addMessage(null,
+                new FacesMessage("Error loading user credentials " + e.getMessage()));
         }
     }
-    
+    /**
+     * Stores the images 
+     */
     ArrayList<Image> imageList=
             new ArrayList<Image>();
 
@@ -329,12 +432,14 @@ public class HadoopBean {
     public void setImageList(ArrayList<Image> imageList) {
         this.imageList = imageList;
     }
-
+    /**
+     * Loads images from sahara. Invoked during application init()
+     */
     public void loadImages()
     {
         logger.info("Loading sahara images");
-        String SAHARA_ENDPOINT="http://10.108.16.13:8386/v1.0/";
-        String TENANT_ID="e8db1678ff104c3397e30293ebdba61a";
+        String SAHARA_ENDPOINT="http://141.5.101.121:8386/v1.0/";
+        String TENANT_ID="bf809f0f55954a80b73d69a6b369774b";
         String IMAGE_PATH=
                 SAHARA_ENDPOINT + TENANT_ID + "/images";
         HTTPClient.setEndpoint(IMAGE_PATH);
@@ -344,7 +449,7 @@ public class HadoopBean {
         try{
             String response = HTTPClient.get(null);
             JsonNode jsonResponse = (new JacksonReader(response)).getJsonNode();
-            logger.info(" loadImages(): json response" + jsonResponse);
+            logger.debug(" loadImages(): json response" + jsonResponse);
             if(jsonResponse.has("images"))
             {
                 jsonResponse=jsonResponse.get("images");
@@ -358,12 +463,16 @@ public class HadoopBean {
             }
         }catch(Exception e)
         {
-            logger.error("Error while loading the images"+ e);
+            logger.error("Error while loading the images"+ e.getMessage());
+            FacesContext.getCurrentInstance().addMessage(null,
+                new FacesMessage("Error loading user credentials " + e.getMessage()));
         }
         
                 
     }
-
+    /**
+     *  cluster list 
+     */
     ArrayList<Cluster> clusters =new ArrayList<Cluster>();
     
         public ArrayList<Cluster> getClusters() {
@@ -373,12 +482,14 @@ public class HadoopBean {
     public void setClusters(ArrayList<Cluster> clusters) {
         this.clusters = clusters;
     }
-    
+    /**
+     * Loads clusters from sahara. Invoked at application init()
+     */
     public void loadClusters()
     {
         logger.info("loading clusters");
-        String SAHARA_ENDPOINT="http://10.108.16.13:8386/v1.0/";
-        String TENANT_ID="e8db1678ff104c3397e30293ebdba61a";
+        String SAHARA_ENDPOINT="http://141.5.101.121:8386/v1.0/";
+        String TENANT_ID="bf809f0f55954a80b73d69a6b369774b";
         String CLUSTER_PATH=
                 SAHARA_ENDPOINT + TENANT_ID + "/clusters";
         
@@ -388,7 +499,7 @@ public class HadoopBean {
         try{
             String response = HTTPClient.get(null);
             JsonNode jsonResponse = (new JacksonReader(response)).getJsonNode();
-            logger.info(" loadClusters(): json response" + jsonResponse);
+            logger.debug(" loadClusters(): json response" + jsonResponse);
             if(jsonResponse.has("clusters"))
             {
                 jsonResponse=jsonResponse.get("clusters");
@@ -396,7 +507,7 @@ public class HadoopBean {
                 while (jsonIterator.hasNext()) {
                     Cluster c=new Cluster();
                     JsonNode Node=jsonIterator.next();
-                    logger.info("cluster node "+Node);
+                    logger.debug("cluster node "+Node);
                     c.load(Node);
                     clusters.add(c);
                     
@@ -405,11 +516,15 @@ public class HadoopBean {
             }
         }catch(Exception e)
         {
-            logger.error("Error while loading the clusters"+e);
+            logger.error("Error while loading the clusters"+e.getMessage());
+            FacesContext.getCurrentInstance().addMessage(null,
+                new FacesMessage("Error loading user credentials " + e.getMessage()));
         }
             
     }
-    
+    /**
+     * stores Sahara plugins
+     */
     ArrayList<Plugin> plugins=
             new ArrayList<Plugin>();
 
@@ -420,11 +535,14 @@ public class HadoopBean {
     public void setPlugins(ArrayList<Plugin> plugins) {
         this.plugins = plugins;
     }
+    /**
+     * Loads plugins from sahara. Invoked during application init()
+     */
     public void loadPlugins()
     {
         logger.info("Inside loadPlugins()");
-        String SAHARA_ENDPOINT="http://10.108.16.13:8386/v1.0/";
-        String TENANT_ID="e8db1678ff104c3397e30293ebdba61a";
+        String SAHARA_ENDPOINT="http://141.5.101.121:8386/v1.0/";
+        String TENANT_ID="bf809f0f55954a80b73d69a6b369774b";
         String PLUGIN_PATH=
                 SAHARA_ENDPOINT + TENANT_ID + "/plugins";
          HTTPClient.setEndpoint(PLUGIN_PATH);
@@ -433,7 +551,7 @@ public class HadoopBean {
         try{
              String response = HTTPClient.get(null);
             JsonNode jsonResponse = (new JacksonReader(response)).getJsonNode();
-            logger.info(" loadPlugins(): json response" + jsonResponse);
+            logger.debug(" loadPlugins(): json response" + jsonResponse);
             if(jsonResponse.has("plugins"))
             {
                 jsonResponse=jsonResponse.get("plugins");
@@ -449,7 +567,56 @@ public class HadoopBean {
             }
         }catch(Exception e)
         {
-            logger.error("Error loading loadPlugins"+e);
+            logger.error("Error loading loadPlugins"+e.getMessage());
+            FacesContext.getCurrentInstance().addMessage(null,
+                new FacesMessage("Error loading user credentials " + e.getMessage()));
+        }
+        
+    }
+    /**
+     * Stores openstack nova flavors
+     */
+    ArrayList<String> flavorList=
+            new ArrayList<String>();
+
+    public ArrayList<String> getFlavorList() {
+        return flavorList;
+    }
+
+    public void setFlavorList(ArrayList<String> flavorList) {
+        this.flavorList = flavorList;
+    }
+    /**
+     * Loads nova instance flavors. Invoked during application init()
+     */
+    public void loadOpenStackFlavors()
+    {
+        logger.info("Inside loadOpenStackFlavors()");
+        String NOVA_ENDPOINT="http://141.5.101.121:8774/v2/";
+        String TENANT_ID="bf809f0f55954a80b73d69a6b369774b";
+        String FLAVOR_PATH=
+                NOVA_ENDPOINT + TENANT_ID + "/flavors";
+         HTTPClient.setEndpoint(FLAVOR_PATH);
+
+        HTTPClient.setToken(getToken());
+        try{
+            String response = HTTPClient.get(null);
+            JsonNode jsonResponse = (new JacksonReader(response)).getJsonNode();
+            if(jsonResponse.has("flavors"))
+            {
+                jsonResponse=jsonResponse.get("flavors");
+                Iterator<JsonNode> jsonIterator = jsonResponse.iterator();
+                while (jsonIterator.hasNext()) {
+                    flavorList.add(jsonIterator.next().get("name").asText());
+                }
+                
+            }
+            
+        }catch(Exception e)
+        {
+            logger.error("Error while loading OpenStackFlavors"+e.getMessage());
+            FacesContext.getCurrentInstance().addMessage(null,
+                new FacesMessage("Error loading user credentials " + e.getMessage()));
         }
         
     }

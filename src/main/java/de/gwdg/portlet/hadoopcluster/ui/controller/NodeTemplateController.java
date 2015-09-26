@@ -21,14 +21,23 @@ import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import de.gwdg.portlet.computecloud.ui.util.json.JacksonReader;
+import de.gwdg.portlet.hadoopcluster.model.Plugin;
+import java.util.ArrayList;
+import java.util.HashMap;
 import javax.annotation.PostConstruct;
-import javax.enterprise.context.RequestScoped;
+import javax.faces.application.FacesMessage;
+import javax.faces.context.FacesContext;
+import javax.faces.view.ViewScoped;
 import javax.inject.Inject;
 
-
+/**
+ * Backing bean for page NodeTemplate.xhtml
+ * 
+ * @author dikshith
+ */
 @Named
 //@SessionScoped//Is this what u want??
-@RequestScoped
+@ViewScoped
 public class NodeTemplateController implements Serializable{
     //@TODO I think you only need String and the id of the node template 
     //private HashMap<String,NodeTemplate> nodeTemplateList;
@@ -44,66 +53,6 @@ public class NodeTemplateController implements Serializable{
 //    }
     
     private NodeTemplate tempNodeTemplate= new NodeTemplate();
-    
-    @Inject
-    HadoopBean  bean; 
-    
-    private  String token;
-    //@TODO write init definition
-    @PostConstruct
-    public void init()
-    {
-        logger.info("inside init");
-        //nodeTemplateList =new ArrayList<NodeTemplate>();
-    
-    }
-//    public class NodeTemplateDataList
-//    {
-//
-//        public String getName() {
-//            return name;
-//        }
-//
-//        public void setName(String name) {
-//            this.name = name;
-//        }
-//
-//        public String getPlugin() {
-//            return plugin;
-//        }
-//
-//        public void setPlugin(String plugin) {
-//            this.plugin = plugin;
-//        }
-//
-//        public String getHadoopVersion() {
-//            return hadoopVersion;
-//        }
-//
-//        public void setHadoopVersion(String hadoopVersion) {
-//            this.hadoopVersion = hadoopVersion;
-//        }
-//
-//        public String getNodeProcesses() {
-//            return nodeProcesses;
-//        }
-//
-//        public void setNodeProcesses(String nodeProcesses) {
-//            this.nodeProcesses = nodeProcesses;
-//        }
-//        String name;
-//        String plugin;
-//        String hadoopVersion;
-//        String nodeProcesses;
-//    }
-    public String getToken() {
-        return token;
-    }
-
-    public void setToken(String token) {
-        this.token = token;
-    }
-
     public NodeTemplate getTempNodeTemplate() {
         return tempNodeTemplate;
     }
@@ -111,27 +60,72 @@ public class NodeTemplateController implements Serializable{
     public void setTempNodeTemplate(NodeTemplate tempNodeTemplate) {
         this.tempNodeTemplate = tempNodeTemplate;
     }
-    private int i; 
+    
+    @Inject
+    HadoopBean  bean; 
+    
+    @PostConstruct
+    public void init()
+    {
+        logger.info("inside init");
+        
+        
+    
+    }
+
+
+    
+    
     private static final Logger logger=LoggerFactory.getLogger(NodeTemplateController.class);
 
-    public int getI() {
-        return i;
+
+    /**
+     * Hadoop version corresponding to plugin selected.
+     */
+    ArrayList<String> hadoopVersions=new ArrayList<String>();
+
+    public ArrayList<String> getHadoopVersions() {
+        return hadoopVersions;
     }
 
-    public void setI(int i) {
-        this.i = i;
+    public void setHadoopVersions(ArrayList<String> hadoopVersions) {
+        this.hadoopVersions = hadoopVersions;
     }
-
-//    public HashMap<String, NodeTemplate> getNodeTemplateList() {
-//        return nodeTemplateList;
-//    }
-//
-//
-//
-//    public void setNodeTemplateList(HashMap<String, NodeTemplate> nodeTemplateList) {
-//        this.nodeTemplateList = nodeTemplateList;
-//    }
-
+    /**
+     * Callback function to populate hadoopVersion after plugin is selected
+     */
+    public void onPluginChange()
+    {
+        
+        for(Plugin p : bean.getPlugins())
+        {
+            logger.info("p.getName().equals(tempNodeTemplate.getPluginName()" + p.getName()+ tempNodeTemplate.getPluginName());
+            if(p.getName().equals(tempNodeTemplate.getPluginName()))
+            {
+                setHadoopVersions(p.getSupportVersions());
+            }
+        }
+    }
+    /**
+     * Validator to check for unique node template name
+     */
+    public void checkUniqueNodeTemplateName()
+    {
+        HashMap<String, NodeTemplate>t=bean.getMaplist();
+        FacesMessage msg;
+        if(t.containsKey(tempNodeTemplate.getName()))
+        {
+            msg = new FacesMessage(FacesMessage.SEVERITY_ERROR, "Invalid", "Name already exists");
+            logger.error("Node template Name already exists");
+            FacesContext.getCurrentInstance().addMessage(null, msg);
+        }
+        
+        
+    }
+    /**
+     * Action : creates a node template
+     * @return 
+     */
     public String process()
     {
         logger.info("reached process");
@@ -148,7 +142,7 @@ public class NodeTemplateController implements Serializable{
         
         //logger.info("nodetemplate" + tempNodeTemplate.toJSON());
         String SAHARA_ENDPOINT="http://10.108.16.13:8386/v1.0/";
-        String TENANT_ID="e8db1678ff104c3397e30293ebdba61a";
+        String TENANT_ID="fc0f4b2273444df69638958aaadcc60f";
         String NODE_GROUP_TEMP_PATH=SAHARA_ENDPOINT + TENANT_ID + "/node-group-templates";
       
         
@@ -158,6 +152,7 @@ public class NodeTemplateController implements Serializable{
         //logger.info("endpoint"+NODE_GROUP_TEMP_PATH);
         HTTPClient.setToken(bean.getToken());
         try{
+            logger.info("tempNodeTemplate.toJSON()"+tempNodeTemplate.toJSON());
                 String response = HTTPClient.post(tempNodeTemplate.toJSON());
             JsonNode jsonResponse = (new JacksonReader(response)).getJsonNode();
             
@@ -197,10 +192,81 @@ public class NodeTemplateController implements Serializable{
         }
         catch(Exception e)
         {
-            logger.error("Something fucked up during node template processing\n"+ e);
+            logger.error("Something went wrong up during node template processing\n"+ e);
         }
         return "";
     }
-    
-    
+    /**
+     * Deletes a node template
+     * @param name Name of the node template
+     */
+    public void deleteNodeTemplate(String name)
+    {
+        bean.deleteNodeTemplate(name);
+    }
+    /**
+     * Validator for node template
+     */
+    public void validateNodeTemplate()
+    {
+        if( tempNodeTemplate.getName()=="" || 
+                tempNodeTemplate.getProcesses()== null ||
+                tempNodeTemplate.getPluginName() == "" ||
+                tempNodeTemplate.getHadoopVersion()=="" 
+                )
+        {
+            logger.error("Node Template is missing a mandatory parameter");
+        }
+    }
+    @Deprecated
+    public void nodeProcessListener()
+    {
+        logger.info("Inside nodeProcessListener"+tempNodeTemplate.getProcesses().length);
+        if(tempNodeTemplate.getProcesses().length == 0)
+        {
+            logger.error("processes list is empty");
+        }
+    }
+    /**
+     * Stores node process based on plugin and hadoop version selected.
+     */
+    ArrayList<String> p= 
+            new ArrayList<String>();
+
+    public ArrayList<String> getP() {
+        return p;
+    }
+
+    public void setP(ArrayList<String> p) {
+        this.p = p;
+    }
+    /**
+     * Updates process list in NodeTemplate.xhtml based on plugin and hadoop version
+     * selected.
+     */
+    public void updateNodeProcess()
+    {
+        p.clear();
+        logger.info(" inside updateNodeProcess"+tempNodeTemplate.getHadoopVersion());
+        logger.info("inside updateNodeProcess"+tempNodeTemplate.getPluginName());
+        if (tempNodeTemplate.getPluginName().equals("vanilla")) {
+            if (tempNodeTemplate.getHadoopVersion().equals("1.2.1")) {
+                p.add("namenode");
+                p.add("datanode");
+                p.add("secondarynamenode");
+                p.add("oozie");
+                p.add("tasktracker");
+                p.add("jobtracker");
+                p.add("hiveserver");
+                
+            } else {
+                p.add("namenode");
+                p.add("datanode");
+                p.add("resourcemanager");
+                p.add("oozie");
+                p.add("nodemanager");
+                p.add("historyserver");
+            }
+        }
+    }
 }
